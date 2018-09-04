@@ -4,15 +4,17 @@ import logo from "./logo.svg";
 import "./App.css";
 import HTML5Backend from "react-dnd-html5-backend";
 import { DragDropContext } from "react-dnd";
-import { setCards, getCards } from "./State";
-
-import type { CardList } from "./State";
 
 import Card from "./Card";
+import CardContextProvider, { CardContext } from "./CardContext";
+//import { observe, setCards, getCards } from "./State";
+
+import type { CardList } from "./CardContext";
 
 type Props = {
   cards: CardList,
-  isDragging: boolean
+  isDragging: boolean,
+  cardContext: Object
 };
 
 let cards = [
@@ -20,14 +22,14 @@ let cards = [
   { id: 1, childrens: [] }
 ];
 
-class App extends Component<Props> {
+class ReactDNDNested extends Component<Props> {
   componentDidMount() {
-    setCards(cards);
+    this.props.cardContext.setCards(cards);
   }
 
   componentDidUpdate(oldProps: Props) {
     if (!this.props.isDragging && oldProps.isDragging) {
-      console.log(getCards());
+      console.log(this.props.cardContext.getCards());
     }
   }
   _renderCards = ({ id, level, isDragged, initialLevel }) => {
@@ -36,15 +38,19 @@ class App extends Component<Props> {
 
   render() {
     return (
-      <div className="App">
-        <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <h1 className="App-title">Welcome to React</h1>
-        </header>
-        <div>{this.props.cards.map(this._renderCards)}</div>
+      <div className="ReactDNDNested">
+        <div>{this.props.cardContext.cards.map(this._renderCards)}</div>
       </div>
     );
   }
 }
 
-export default DragDropContext(HTML5Backend)(App);
+const ReactDNDNestedWithContext = props => (
+  <CardContextProvider>
+    <CardContext.Consumer>
+      {cardContext => <ReactDNDNested {...props} cardContext={cardContext} />}
+    </CardContext.Consumer>
+  </CardContextProvider>
+);
+
+export default DragDropContext(HTML5Backend)(ReactDNDNestedWithContext);

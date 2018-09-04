@@ -2,52 +2,53 @@
 import React from "react";
 import { findDOMNode } from "react-dom";
 import { DragSource, DropTarget } from "react-dnd";
-
-import { moveCard, beginDrag, endDrag } from "./State";
+import { CardContext } from "./CardContext";
 
 // px
 const PARENT_OFFSET: number = 30;
 
-type Props = {
+type ContextProps = {
+  beginDrag: (id: number) => any,
+  endDrag: (id: number) => any,
+  moveCard: (id: number, params: Object) => any
+};
+
+type OwnProps = {
   id: number,
   level: number,
-  isDragging: boolean,
-  initialLevel?: number,
+  initialLevel?: number
+};
+
+type DNDProps = {
   // TODO: typedef
+  isDragging: boolean,
   connectDragSource: any,
   connectDropTarget: any,
   connectDragPreview: any
 };
 
+type Props = ContextProps & OwnProps & DNDProps;
+
 const Types = {
   CARD: "card"
 };
 
-/**
- * Specifies the drag source contract.
- * Only `beginDrag` function is required.
- */
 const cardSource = {
-  beginDrag(props) {
-    // Return the data describing the dragged item
+  beginDrag(props: Props) {
     const item = { id: props.id };
-    beginDrag(props.id);
+    props.beginDrag(props.id);
     return item;
   },
 
   endDrag(props, monitor, component) {
-    // When dropped on a compatible target, do something
     const item = monitor.getItem();
+    // TODO: handle drop result
     const dropResult = monitor.getDropResult();
 
-    endDrag(props.id);
+    props.endDrag(props.id);
   }
 };
 
-/**
- * Specifies the drag source contract.
- * Only `beginDrag` function is required.
- */
 const cardTarget = {
   canDrop() {
     return false;
@@ -64,7 +65,7 @@ const cardTarget = {
     newLevel = Math.floor(adjustedX / PARENT_OFFSET);
     newLevel = newLevel < 0 ? 0 : newLevel;
 
-    if (draggedId !== overId || level != newLevel) {
+    if (draggedId !== overId || level !== newLevel) {
       if (!monitor.isOver({ shallow: true })) return;
 
       const params = {};
@@ -84,7 +85,7 @@ const cardTarget = {
         }
       }
       if (initialLevel != null) params.newLevel = newLevel;
-      moveCard(draggedId, params);
+      props.moveCard(draggedId, params);
     }
   }
 };
@@ -147,6 +148,20 @@ const cardStyle = {
   textAlign: "left"
 };
 
-export default DropTarget("card", cardTarget, dropCollect)(
+export const CardWithDND = DropTarget("card", cardTarget, dropCollect)(
   DragSource(Types.CARD, cardSource, dragCollect)(Card)
+);
+
+export default (props: OwnProps) => (
+  <CardContext.Consumer>
+    {/* $FlowFixMe */}
+    {({ beginDrag, endDrag, moveCard }) => (
+      <CardWithDND
+        {...props}
+        beginDrag={beginDrag}
+        moveCard={moveCard}
+        endDrag={endDrag}
+      />
+    )}
+  </CardContext.Consumer>
 );
